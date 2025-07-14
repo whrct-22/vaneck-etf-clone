@@ -12,7 +12,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    /* 错误的一行已被删除 */
     "incremental": true,
     "plugins": [
       {
