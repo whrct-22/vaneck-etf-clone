@@ -6,10 +6,10 @@ import type { TooltipProps } from 'recharts';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
 /**
- * 计算一个颜色的加深版本。
- * @param color - HEX 格式的颜色字符串 (例如, "#RRGGBB").
- * @param amount - 加深的程度，从 0 到 1 (例如, 0.2 表示加深 20%).
- * @returns 返回加深后的 HEX 颜色字符串。
+ * Calcula uma versão mais escura de uma cor.
+ * @param color - A string de cor no formato HEX (ex: "#RRGGBB").
+ * @param amount - O quanto escurecer, de 0 a 1 (ex: 0.2 para 20% mais escuro).
+ * @returns A string de cor HEX escurecida.
  */
 const darkenColor = (color: string, amount: number = 0.2): string => {
   let usePound = false;
@@ -57,12 +57,9 @@ const sectorData = [
 
 type SliceData = typeof sectorData[0];
 
-// FIX 1: 定义一个更明确的 Props 接口来解决 TS 错误
 interface CustomTooltipProps {
-  // 由 Recharts 自动传入的 Props
   active?: boolean;
   payload?: { payload: SliceData }[];
-  // 我们手动传入的 Props
   activeIndex: number | null;
   sectorData: SliceData[];
 }
@@ -70,12 +67,9 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload, activeIndex, sectorData }: CustomTooltipProps) => {
   let data: SliceData | undefined;
 
-  // 优先从 recharts 的 payload 获取数据 (当悬停在饼图上时)
   if (active && payload && payload.length) {
-    // FIX 1 (cont.): 修正 payload 的访问方式
     data = payload[0].payload;
   } 
-  // 否则，根据 activeIndex 从我们的数据源获取 (当悬停在图例上时)
   else if (activeIndex !== null) {
     data = sectorData[activeIndex];
   }
@@ -104,7 +98,8 @@ export default function Holdings() {
     setIsClient(true);
   }, []);
 
-  const onPieEnter = useCallback((_: any, index: number) => {
+  // CORREÇÃO APLICADA AQUI
+  const onPieEnter = useCallback((_data: SliceData, index: number) => {
     setActiveIndex(index);
   }, []);
 
@@ -183,7 +178,6 @@ export default function Holdings() {
                   ))}
                 </Pie>
 
-                {/* FIX 2: 添加 activeIndex !== null 的显式检查来帮助 TS 进行类型收窄 */}
                 {activeShape && activeIndex !== null && (
                   <Pie
                     data={[activeShape]}
