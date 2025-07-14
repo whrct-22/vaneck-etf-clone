@@ -2,60 +2,31 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
-import type { TooltipProps } from 'recharts';
-import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
-/**
- * Calcula uma versão mais escura de uma cor.
- * @param color - A string de cor no formato HEX (ex: "#RRGGBB").
- * @param amount - O quanto escurecer, de 0 a 1 (ex: 0.2 para 20% mais escuro).
- * @returns A string de cor HEX escurecida.
- */
+// A função darkenColor e as interfaces/tipos permanecem os mesmos
 const darkenColor = (color: string, amount: number = 0.2): string => {
   let usePound = false;
-
   if (color[0] === "#") {
     color = color.slice(1);
     usePound = true;
   }
-
   const num = parseInt(color, 16);
-
   let r = (num >> 16);
   r = Math.max(0, Math.min(255, r - Math.floor(255 * amount)));
-
   let g = (num >> 8) & 0x00FF;
   g = Math.max(0, Math.min(255, g - Math.floor(255 * amount)));
-
   let b = num & 0x0000FF;
   b = Math.max(0, Math.min(255, b - Math.floor(255 * amount)));
-  
   const newColor = (b | (g << 8) | (r << 16)).toString(16).padStart(6, '0');
-
   return (usePound ? "#" : "") + newColor;
 };
 
-const sectorData = [
-    { name: 'Technology Hardware & Equipment', value: 18.7, color: '#4a5568' },
-    { name: 'Food, Beverage & Tobacco', value: 17.7, color: '#a0aec0' },
-    { name: 'Pharmaceuticals, Biotechnology', value: 16.9, color: '#d1d5db' },
-    { name: 'Consumer Durables & Apparel', value: 7.6, color: '#81e6d9' },
-    { name: 'Capital Goods', value: 5.9, color: '#b2f5ea' },
-    { name: 'Materials', value: 5.8, color: '#e6fffa' },
-    { name: 'Health Care Equipment & Services', value: 5.6, color: '#2d3748' },
-    { name: 'Media & Entertainment', value: 5.2, color: '#718096' },
-    { name: 'Household & Personal', value: 2.9, color: '#e2e8f0' },
-    { name: 'Semiconductors & Semiconductor Equipment', value: 3.7, color: '#a78bfa' },
-    { name: 'Automobiles & Components', value: 2.7, color: '#c4b5fd' },
-    { name: 'Software & Services', value: 1.6, color: '#ddd6fe' },
-    { name: 'Retailing', value: 1.6, color: '#f472b6' },
-    { name: 'Food & Staples Retailing', value: 1.4, color: '#fbcfe8' },
-    { name: 'Commercial & Professional Services', value: 0.8, color: '#fce7f3' },
-    { name: 'Consumer Services', value: 0.8, color: '#fb923c' },
-    { name: 'Other/Cash', value: 0.2, color: '#fed7aa' }
-];
-
-type SliceData = typeof sectorData[0];
+// Tipo para os dados de cada fatia do gráfico
+type SliceData = {
+    name: string;
+    value: number;
+    color: string;
+};
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -66,14 +37,11 @@ interface CustomTooltipProps {
 
 const CustomTooltip = ({ active, payload, activeIndex, sectorData }: CustomTooltipProps) => {
   let data: SliceData | undefined;
-
   if (active && payload && payload.length) {
     data = payload[0].payload;
-  } 
-  else if (activeIndex !== null) {
+  } else if (activeIndex !== null) {
     data = sectorData[activeIndex];
   }
-
   if (data) {
     return (
       <div className="p-3 text-sm bg-white rounded-md shadow-lg border border-gray-200 z-10">
@@ -85,29 +53,47 @@ const CustomTooltip = ({ active, payload, activeIndex, sectorData }: CustomToolt
       </div>
     );
   }
-
   return null;
 };
 
-
 export default function Holdings() {
-  const [isClient, setIsClient] = useState(false);
+  // NOVO: Estados para guardar os dados, o status de carregamento e erros
+  const [sectorData, setSectorData] = useState<SliceData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
+  // NOVO: useEffect para buscar os dados da API quando o componente é montado
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/holdings');
+        if (!response.ok) {
+          throw new Error('Falha ao buscar os dados.');
+        }
+        const data: SliceData[] = await response.json();
+        setSectorData(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // CORREÇÃO APLICADA AQUI
-  const onPieEnter = useCallback((_data: SliceData, index: number) => {
+    fetchData();
+  }, []); // O array vazio [] garante que o efeito rode apenas uma vez
+
+  const onPieEnter = useCallback((_: any, index: number) => {
     setActiveIndex(index);
   }, []);
 
   const onPieLeave = useCallback(() => {
     setActiveIndex(null);
   }, []);
-
-  if (!isClient) {
+  
+  // ALTERADO: A tela de carregamento (skeleton) agora é controlada por `isLoading`
+  if (isLoading) {
     return (
       <div className="bg-white px-4 py-8">
         <div className="max-w-7xl mx-auto">
@@ -132,6 +118,18 @@ export default function Holdings() {
     );
   }
 
+  // NOVO: Renderiza uma mensagem de erro se a busca falhar
+  if (error) {
+    return (
+      <div className="bg-white px-4 py-8">
+        <div className="max-w-7xl mx-auto text-center text-red-600">
+          <h2 className="text-2xl font-bold">Erro ao carregar dados</h2>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+  
   const activeShape = activeIndex !== null ? sectorData[activeIndex] : null;
   const totalValue = sectorData.reduce((acc, entry) => acc + entry.value, 0);
 
@@ -142,6 +140,7 @@ export default function Holdings() {
           Holdings & allocations
         </h2>
 
+        {/* O restante do JSX permanece o mesmo, mas agora usa o estado `sectorData` */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="w-full h-80 lg:h-96">
             <ResponsiveContainer width="100%" height="100%">
