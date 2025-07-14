@@ -57,14 +57,12 @@ const CustomTooltip = ({ active, payload, activeIndex, sectorData }: CustomToolt
 };
 
 export default function Holdings() {
-  // NOVO: Estados para guardar os dados, o status de carregamento e erros
   const [sectorData, setSectorData] = useState<SliceData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  // NOVO: useEffect para buscar os dados da API quando o componente é montado
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -74,17 +72,23 @@ export default function Holdings() {
         }
         const data: SliceData[] = await response.json();
         setSectorData(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // CORREÇÃO 1: Trocado 'any' por 'unknown'
+        // Verificamos se o erro é uma instância de Error para acessar 'message' com segurança
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Ocorreu um erro desconhecido.');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, []); // O array vazio [] garante que o efeito rode apenas uma vez
+  }, []);
 
-  const onPieEnter = useCallback((_: any, index: number) => {
+  // CORREÇÃO 2: Trocado '_: any' por '_: SliceData' para tipar o primeiro argumento não utilizado
+  const onPieEnter = useCallback((_: SliceData, index: number) => {
     setActiveIndex(index);
   }, []);
 
@@ -92,7 +96,6 @@ export default function Holdings() {
     setActiveIndex(null);
   }, []);
   
-  // ALTERADO: A tela de carregamento (skeleton) agora é controlada por `isLoading`
   if (isLoading) {
     return (
       <div className="bg-white px-4 py-8">
@@ -118,7 +121,6 @@ export default function Holdings() {
     );
   }
 
-  // NOVO: Renderiza uma mensagem de erro se a busca falhar
   if (error) {
     return (
       <div className="bg-white px-4 py-8">
@@ -140,7 +142,6 @@ export default function Holdings() {
           Holdings & allocations
         </h2>
 
-        {/* O restante do JSX permanece o mesmo, mas agora usa o estado `sectorData` */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="w-full h-80 lg:h-96">
             <ResponsiveContainer width="100%" height="100%">
