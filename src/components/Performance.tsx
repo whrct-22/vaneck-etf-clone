@@ -28,7 +28,7 @@ export default function Performance() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- 修改：使用 useEffect 在组件挂载时从 API 获取数据 ---
+// --- 修改：使用 useEffect 在组件挂载时从 API 获取数据 ---
   useEffect(() => {
     const fetchChartData = async () => {
       setIsLoading(true);
@@ -40,8 +40,12 @@ export default function Performance() {
         }
         const data: CalendarYearData[] = await response.json();
         setChartData(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // 使用 'unknown' 类型更安全
+        if (err instanceof Error) {
+          setError(err.message); // 现在可以安全地访问 message 属性
+        } else {
+          setError('An unknown error occurred.');
+        }
       } finally {
         setIsLoading(false); // 无论成功或失败，都结束加载状态
       }
