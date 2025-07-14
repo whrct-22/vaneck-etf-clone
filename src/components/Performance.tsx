@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-// --- 新增：导入 recharts 相关组件 ---
 import { 
   ResponsiveContainer, 
   BarChart, 
@@ -12,26 +11,46 @@ import {
   CartesianGrid, 
   Tooltip 
 } from 'recharts';
-// --- 结束新增 ---
 
-// --- 新增：图表数据 ---
-const calendarYearData = [
-  { year: '2019', cnew: 26.7, benchmark: 28.0 },
-  { year: '2020', cnew: 23.3, benchmark: 24.7 },
-  { year: '2021', cnew: 20.0, benchmark: 21.3 },
-  { year: '2022', cnew: -23.3, benchmark: -21.3 },
-  { year: '2023', cnew: 3.3,  benchmark: 2.7 },
-  { year: '2024', cnew: 10.0, benchmark: 9.3 },
-];
-// --- 结束新增 ---
+// --- 新增：为从 API 获取的图表数据定义一个类型 ---
+type CalendarYearData = {
+  year: string;
+  cnew: number;
+  benchmark: number;
+};
+
+// --- 移除：不再需要硬编码的数据 ---
+// const calendarYearData = [ ... ];
 
 export default function Performance() {
-  // --- 新增：用于安全渲染图表的客户端状态 ---
-  const [isClient, setIsClient] = useState(false);
+  // --- 修改：为数据获取、加载状态和错误处理添加 state ---
+  const [chartData, setChartData] = useState<CalendarYearData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // --- 修改：使用 useEffect 在组件挂载时从 API 获取数据 ---
   useEffect(() => {
-    setIsClient(true);
-  }, []);
-  // --- 结束新增 ---
+    const fetchChartData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch('/api/performance'); // 调用我们创建的 API
+        if (!response.ok) {
+          throw new Error('获取年度表现数据失败，请稍后重试。');
+        }
+        const data: CalendarYearData[] = await response.json();
+        setChartData(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false); // 无论成功或失败，都结束加载状态
+      }
+    };
+
+    fetchChartData();
+  }, []); // 空依赖数组确保此 effect 只在组件首次渲染时运行一次
+  // --- 结束修改 ---
+
 
   return (
     <div className="bg-white px-4 py-8">
@@ -103,14 +122,12 @@ export default function Performance() {
         {/* Performance History (代码无变化) */}
         <div className="mb-12">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance history (%)</h3>
-
           <div className="flex gap-4 mb-4">
             <button className="px-4 py-2 bg-gray-600 text-white text-sm">Month End as at 30-Jun-25</button>
             <button className="px-4 py-2 bg-gray-200 text-gray-700 text-sm">Quarter End as at 30-Jun-25</button>
           </div>
-
           <div className="overflow-x-auto">
-            <table className="w-full border border-gray-300">
+             <table className="w-full border border-gray-300">
               <thead className="bg-gray-600 text-white">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm"></th>
@@ -172,12 +189,10 @@ export default function Performance() {
               </tbody>
             </table>
           </div>
-
           <div className="mt-4 flex gap-4">
             <a href="#" className="text-blue-600 text-sm">View all indices</a>
             <a href="#" className="text-blue-600 text-sm">View all ETFs</a>
           </div>
-
           <p className="text-xs text-gray-600 mt-4 leading-relaxed">
             The tables above show past performance of the ETF from 8 November 2018. Index performance shown prior to 15 June 2017 is simulated based on the current index
             methodology. The change of name in the index was to continue the existing methodology when the original index methodology was changed in September 2021. Results are
@@ -193,7 +208,7 @@ export default function Performance() {
           <p className="text-sm text-gray-600 mb-4">as at 31-Dec-24</p>
           
           <div className="bg-white p-6 border rounded">
-            {/* 图例 (Legend) 保持不变 */}
+            {/* 图例 (Legend) */}
             <div className="flex items-center gap-4 text-xs mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-blue-600 rounded"></div>
@@ -207,18 +222,21 @@ export default function Performance() {
 
             {/* Recharts 图表容器 */}
             <div className="w-full h-72">
-              {!isClient ? (
+              {/* --- 修改：根据 isLoading 和 error 状态条件性地渲染 UI --- */}
+              {isLoading ? (
+                // 状态一：正在加载，显示骨架屏
                 <div className="w-full h-full animate-pulse bg-gray-200 rounded-md"></div>
+              ) : error ? (
+                // 状态二：发生错误，显示错误信息
+                <div className="w-full h-full flex items-center justify-center text-red-600 bg-red-50 rounded-md">
+                  <p>{error}</p>
+                </div>
               ) : (
+                // 状态三：数据加载成功，渲染图表
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={calendarYearData}
-                    margin={{
-                      top: 5,
-                      right: 20,
-                      left: -10, // 将 Y 轴标签向左移动，使其更贴近
-                      bottom: 5,
-                    }}
+                    data={chartData} // <-- 关键：使用从 state 获取的数据
+                    margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis 
@@ -226,14 +244,14 @@ export default function Performance() {
                       tickLine={false} 
                       axisLine={{ stroke: '#374151', strokeWidth: 2 }} 
                       tick={{ fill: '#374151', fontSize: 12 }}
-                      dy={10} // 向下移动 X 轴标签
+                      dy={10}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      domain={[-40, 40]} // 设置 Y 轴范围
-                      ticks={[-40, -20, 0, 20, 40]} // 定义 Y 轴刻度
-                      tickFormatter={(value) => `${value}`} // Y 轴标签格式
+                      domain={[-40, 40]}
+                      ticks={[-40, -20, 0, 20, 40]}
+                      tickFormatter={(value) => `${value}`}
                       tick={{ fill: '#6b7280', fontSize: 12 }}
                     />
                     <Tooltip
@@ -255,11 +273,10 @@ export default function Performance() {
                   </BarChart>
                 </ResponsiveContainer>
               )}
+              {/* --- 结束修改 --- */}
             </div>
           </div>
         </div>
-        {/* --- 结束修改 --- */}
-
       </div>
     </div>
   )
