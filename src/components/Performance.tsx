@@ -1,8 +1,38 @@
 'use client'
 
+import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// --- 新增：导入 recharts 相关组件 ---
+import { 
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip 
+} from 'recharts';
+// --- 结束新增 ---
+
+// --- 新增：图表数据 ---
+const calendarYearData = [
+  { year: '2019', cnew: 26.7, benchmark: 28.0 },
+  { year: '2020', cnew: 23.3, benchmark: 24.7 },
+  { year: '2021', cnew: 20.0, benchmark: 21.3 },
+  { year: '2022', cnew: -23.3, benchmark: -21.3 },
+  { year: '2023', cnew: 3.3,  benchmark: 2.7 },
+  { year: '2024', cnew: 10.0, benchmark: 9.3 },
+];
+// --- 结束新增 ---
 
 export default function Performance() {
+  // --- 新增：用于安全渲染图表的客户端状态 ---
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  // --- 结束新增 ---
+
   return (
     <div className="bg-white px-4 py-8">
       <div className="max-w-7xl mx-auto">
@@ -10,12 +40,11 @@ export default function Performance() {
           Performance
         </h2>
 
-        {/* Prices Section */}
+        {/* Prices Section (代码无变化) */}
         <div className="mb-12">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Prices</h3>
           <p className="text-sm text-gray-600 mb-4">as at 14-Jul-25</p>
 
-          {/* Price Table */}
           <div className="overflow-x-auto">
             <table className="w-full border border-gray-300">
               <thead className="bg-gray-600 text-white">
@@ -71,7 +100,7 @@ export default function Performance() {
           </div>
         </div>
 
-        {/* Performance History */}
+        {/* Performance History (代码无变化) */}
         <div className="mb-12">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance history (%)</h3>
 
@@ -84,6 +113,7 @@ export default function Performance() {
             <table className="w-full border border-gray-300">
               <thead className="bg-gray-600 text-white">
                 <tr>
+                  <th className="px-4 py-3 text-left text-sm"></th>
                   <th className="px-4 py-3 text-left text-sm">1 Mth</th>
                   <th className="px-4 py-3 text-left text-sm">3 Mths</th>
                   <th className="px-4 py-3 text-left text-sm">6 Mths</th>
@@ -96,7 +126,7 @@ export default function Performance() {
               </thead>
               <tbody className="text-sm">
                 <tr className="border-b border-gray-200">
-                  <td className="px-4 py-2">Price return</td>
+                  <td className="px-4 py-2 font-semibold">Price return</td>
                   <td className="px-4 py-2">1.00</td>
                   <td className="px-4 py-2">-1.11</td>
                   <td className="px-4 py-2">0.72</td>
@@ -107,7 +137,7 @@ export default function Performance() {
                   <td className="px-4 py-2">5.69</td>
                 </tr>
                 <tr className="border-b border-gray-200">
-                  <td className="px-4 py-2">Income return</td>
+                  <td className="px-4 py-2 font-semibold">Income return</td>
                   <td className="px-4 py-2">1.00</td>
                   <td className="px-4 py-2">0.98</td>
                   <td className="px-4 py-2">0.99</td>
@@ -118,7 +148,7 @@ export default function Performance() {
                   <td className="px-4 py-2">1.55</td>
                 </tr>
                 <tr className="border-b border-gray-200">
-                  <td className="px-4 py-2">Total return</td>
+                  <td className="px-4 py-2 font-semibold">Total return</td>
                   <td className="px-4 py-2">2.00</td>
                   <td className="px-4 py-2">-0.13</td>
                   <td className="px-4 py-2">1.71</td>
@@ -129,7 +159,7 @@ export default function Performance() {
                   <td className="px-4 py-2">7.24</td>
                 </tr>
                 <tr className="border-b border-gray-200">
-                  <td className="px-4 py-2">Index (MGCNEAUN)</td>
+                  <td className="px-4 py-2 font-semibold">Index (MGCNEAUN)</td>
                   <td className="px-4 py-2">2.00</td>
                   <td className="px-4 py-2">-0.03</td>
                   <td className="px-4 py-2">2.06</td>
@@ -157,13 +187,13 @@ export default function Performance() {
           </p>
         </div>
 
-        {/* Calendar Year Returns Chart */}
+        {/* --- MODIFIED: Calendar Year Returns Chart --- */}
         <div className="mb-12">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Calendar year returns (%)</h3>
           <p className="text-sm text-gray-600 mb-4">as at 31-Dec-24</p>
-
-          {/* Chart */}
+          
           <div className="bg-white p-6 border rounded">
+            {/* 图例 (Legend) 保持不变 */}
             <div className="flex items-center gap-4 text-xs mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-blue-600 rounded"></div>
@@ -175,58 +205,61 @@ export default function Performance() {
               </div>
             </div>
 
-            <div className="relative h-64">
-              <svg viewBox="0 0 600 200" className="w-full h-full">
-                {/* Y-axis labels */}
-                <text x="30" y="20" className="text-xs fill-gray-600">40</text>
-                <text x="30" y="50" className="text-xs fill-gray-600">20</text>
-                <text x="30" y="80" className="text-xs fill-gray-600">0</text>
-                <text x="30" y="110" className="text-xs fill-gray-600">-20</text>
-                <text x="30" y="140" className="text-xs fill-gray-600">-40</text>
-
-                {/* X-axis labels */}
-                <text x="80" y="190" className="text-xs fill-gray-600">2019</text>
-                <text x="160" y="190" className="text-xs fill-gray-600">2020</text>
-                <text x="240" y="190" className="text-xs fill-gray-600">2021</text>
-                <text x="320" y="190" className="text-xs fill-gray-600">2022</text>
-                <text x="400" y="190" className="text-xs fill-gray-600">2023</text>
-                <text x="480" y="190" className="text-xs fill-gray-600">2024</text>
-
-                {/* Grid lines */}
-                <line x1="50" y1="20" x2="550" y2="20" stroke="#e5e7eb" strokeWidth="1"/>
-                <line x1="50" y1="50" x2="550" y2="50" stroke="#e5e7eb" strokeWidth="1"/>
-                <line x1="50" y1="80" x2="550" y2="80" stroke="#e5e7eb" strokeWidth="1"/>
-                <line x1="50" y1="110" x2="550" y2="110" stroke="#e5e7eb" strokeWidth="1"/>
-                <line x1="50" y1="140" x2="550" y2="140" stroke="#e5e7eb" strokeWidth="1"/>
-                <line x1="50" y1="170" x2="550" y2="170" stroke="#374151" strokeWidth="2"/>
-
-                {/* 2019 bars */}
-                <rect x="70" y="40" width="15" height="40" fill="#2563eb"/>
-                <rect x="90" y="38" width="15" height="42" fill="#14b8a6"/>
-
-                {/* 2020 bars */}
-                <rect x="150" y="45" width="15" height="35" fill="#2563eb"/>
-                <rect x="170" y="43" width="15" height="37" fill="#14b8a6"/>
-
-                {/* 2021 bars */}
-                <rect x="230" y="50" width="15" height="30" fill="#2563eb"/>
-                <rect x="250" y="48" width="15" height="32" fill="#14b8a6"/>
-
-                {/* 2022 bars (negative) */}
-                <rect x="310" y="80" width="15" height="35" fill="#2563eb"/>
-                <rect x="330" y="80" width="15" height="32" fill="#14b8a6"/>
-
-                {/* 2023 bars (small positive) */}
-                <rect x="390" y="75" width="15" height="5" fill="#2563eb"/>
-                <rect x="410" y="76" width="15" height="4" fill="#14b8a6"/>
-
-                {/* 2024 bars */}
-                <rect x="470" y="65" width="15" height="15" fill="#2563eb"/>
-                <rect x="490" y="66" width="15" height="14" fill="#14b8a6"/>
-              </svg>
+            {/* Recharts 图表容器 */}
+            <div className="w-full h-72">
+              {!isClient ? (
+                <div className="w-full h-full animate-pulse bg-gray-200 rounded-md"></div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={calendarYearData}
+                    margin={{
+                      top: 5,
+                      right: 20,
+                      left: -10, // 将 Y 轴标签向左移动，使其更贴近
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis 
+                      dataKey="year" 
+                      tickLine={false} 
+                      axisLine={{ stroke: '#374151', strokeWidth: 2 }} 
+                      tick={{ fill: '#374151', fontSize: 12 }}
+                      dy={10} // 向下移动 X 轴标签
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      domain={[-40, 40]} // 设置 Y 轴范围
+                      ticks={[-40, -20, 0, 20, 40]} // 定义 Y 轴刻度
+                      tickFormatter={(value) => `${value}`} // Y 轴标签格式
+                      tick={{ fill: '#6b7280', fontSize: 12 }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(230, 230, 230, 0.5)' }}
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                      }}
+                      labelStyle={{ fontWeight: 'bold', color: '#111827' }}
+                      formatter={(value, name) => {
+                          const displayName = name === 'cnew' ? 'CNEW (Nav)' : 'Benchmark Index';
+                          return [`${Number(value).toFixed(1)}%`, displayName];
+                      }}
+                    />
+                    <Bar dataKey="cnew" fill="#2563eb" barSize={20} />
+                    <Bar dataKey="benchmark" fill="#14b8a6" barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>
+        {/* --- 结束修改 --- */}
+
       </div>
     </div>
   )
