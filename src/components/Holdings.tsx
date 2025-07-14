@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
-// A função darkenColor e as interfaces/tipos permanecem os mesmos
+// 一个用于加深颜色的辅助函数
 const darkenColor = (color: string, amount: number = 0.2): string => {
   let usePound = false;
   if (color[0] === "#") {
@@ -21,13 +21,14 @@ const darkenColor = (color: string, amount: number = 0.2): string => {
   return (usePound ? "#" : "") + newColor;
 };
 
-// Tipo para os dados de cada fatia do gráfico
+// 饼图每个切片的数据类型
 type SliceData = {
     name: string;
     value: number;
     color: string;
 };
 
+// 自定义 Tooltip 的 props 接口
 interface CustomTooltipProps {
   active?: boolean;
   payload?: { payload: SliceData }[];
@@ -68,16 +69,15 @@ export default function Holdings() {
       try {
         const response = await fetch('/api/holdings');
         if (!response.ok) {
-          throw new Error('Falha ao buscar os dados.');
+          throw new Error('获取数据失败。');
         }
         const data: SliceData[] = await response.json();
         setSectorData(data);
-      } catch (err: unknown) { // CORREÇÃO 1: Trocado 'any' por 'unknown'
-        // Verificamos se o erro é uma instância de Error para acessar 'message' com segurança
+      } catch (err: unknown) {
         if (err instanceof Error) {
           setError(err.message);
         } else {
-          setError('Ocorreu um erro desconhecido.');
+          setError('发生未知错误。');
         }
       } finally {
         setIsLoading(false);
@@ -87,7 +87,6 @@ export default function Holdings() {
     fetchData();
   }, []);
 
-  // CORREÇÃO 2: Trocado '_: any' por '_: SliceData' para tipar o primeiro argumento não utilizado
   const onPieEnter = useCallback((_: SliceData, index: number) => {
     setActiveIndex(index);
   }, []);
@@ -125,7 +124,7 @@ export default function Holdings() {
     return (
       <div className="bg-white px-4 py-8">
         <div className="max-w-7xl mx-auto text-center text-red-600">
-          <h2 className="text-2xl font-bold">Erro ao carregar dados</h2>
+          <h2 className="text-2xl font-bold">加载数据时出错</h2>
           <p>{error}</p>
         </div>
       </div>
@@ -136,100 +135,120 @@ export default function Holdings() {
   const totalValue = sectorData.reduce((acc, entry) => acc + entry.value, 0);
 
   return (
-    <div className="bg-white px-4 py-8">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-300 pb-2 inline-block">
-          Holdings & allocations
-        </h2>
+    // 使用一个 Fragment (<>) 来包裹 style 标签和原有的 div
+    <>
+      {/* 
+        修改的关键点：
+        添加一个 style 标签，使用 CSS 类选择器直接为饼图扇形元素移除焦点轮廓。
+        `.recharts-pie-sector` 是 recharts 库为每个扇形 <path> 元素添加的类名。
+        这个规则的优先级更高，可以确保覆盖浏览器的默认样式。
+      */}
+      <style>{`
+        .recharts-pie-sector:focus {
+          outline: none;
+        }
+      `}</style>
+    
+      <div className="bg-white px-4 py-8">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-300 pb-2 inline-block">
+            Holdings & allocations
+          </h2>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="w-full h-80 lg:h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Tooltip 
-                  content={<CustomTooltip activeIndex={activeIndex} sectorData={sectorData} />} 
-                  cursor={{ fill: 'transparent' }} 
-                  isAnimationActive={false}
-                  position={{ x: 0, y: 0 }}
-                  wrapperStyle={{ visibility: activeIndex !== null ? 'visible' : 'hidden' }}
-                />
-                
-                <Pie
-                  data={sectorData}
-                  dataKey="value"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="60%"
-                  outerRadius="90%"
-                  startAngle={90}
-                  endAngle={-270}
-                  paddingAngle={0}
-                  stroke="none"
-                  onMouseEnter={onPieEnter}
-                  onMouseLeave={onPieLeave}
-                >
-                  {sectorData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                      style={{ transition: 'opacity 0.2s ease-in-out', cursor: 'pointer' }}
-                      opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
-                    />
-                  ))}
-                </Pie>
-
-                {activeShape && activeIndex !== null && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="w-full h-80 lg:h-96">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Tooltip 
+                    content={<CustomTooltip activeIndex={activeIndex} sectorData={sectorData} />} 
+                    cursor={{ fill: 'transparent' }} 
+                    isAnimationActive={false}
+                    position={{ x: 0, y: 0 }}
+                    wrapperStyle={{ visibility: activeIndex !== null ? 'visible' : 'hidden' }}
+                  />
+                  
                   <Pie
-                    data={[activeShape]}
+                    data={sectorData}
                     dataKey="value"
                     cx="50%"
                     cy="50%"
                     innerRadius="60%"
-                    outerRadius="95%"
-                    startAngle={sectorData.slice(0, activeIndex).reduce((acc, curr) => acc + curr.value, 0) / totalValue * -360 + 90}
-                    endAngle={(sectorData.slice(0, activeIndex).reduce((acc, curr) => acc + curr.value, 0) + activeShape.value) / totalValue * -360 + 90}
+                    outerRadius="90%"
+                    startAngle={90}
+                    endAngle={-270}
                     paddingAngle={0}
                     stroke="none"
-                    isAnimationActive={false}
+                    onMouseEnter={onPieEnter}
+                    onMouseLeave={onPieLeave}
                   >
-                     <Cell
-                        key={`active-cell-${activeIndex}`}
-                        fill={darkenColor(activeShape.color, 0.2)}
-                        style={{ cursor: 'pointer' }}
+                    {sectorData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        // 我们依然保留这里的 outline: 'none' 作为备用，但主要依赖上面的 <style> 块
+                        style={{ 
+                          transition: 'opacity 0.2s ease-in-out', 
+                          cursor: 'pointer',
+                          outline: 'none' 
+                        }}
+                        opacity={activeIndex === null || activeIndex === index ? 1 : 0.3}
                       />
+                    ))}
                   </Pie>
-                )}
 
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+                  {activeShape && activeIndex !== null && (
+                    <Pie
+                      data={[activeShape]}
+                      dataKey="value"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="60%"
+                      outerRadius="95%"
+                      startAngle={sectorData.slice(0, activeIndex).reduce((acc, curr) => acc + curr.value, 0) / totalValue * -360 + 90}
+                      endAngle={(sectorData.slice(0, activeIndex).reduce((acc, curr) => acc + curr.value, 0) + activeShape.value) / totalValue * -360 + 90}
+                      paddingAngle={0}
+                      stroke="none"
+                      isAnimationActive={false}
+                    >
+                      <Cell
+                          key={`active-cell-${activeIndex}`}
+                          fill={darkenColor(activeShape.color, 0.2)}
+                          style={{ cursor: 'pointer', outline: 'none' }}
+                        />
+                    </Pie>
+                  )}
 
-          <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-            {sectorData.map((slice, index) => (
-              <div
-                key={slice.name}
-                className="flex items-center gap-3"
-                style={{ 
-                  cursor: 'pointer',
-                  opacity: activeIndex === null || activeIndex === index ? 1 : 0.3,
-                  transition: 'opacity 0.2s ease-in-out',
-                }}
-                onMouseEnter={() => setActiveIndex(index)}
-                onMouseLeave={() => setActiveIndex(null)}
-              >
-                <div 
-                  className="w-3 h-3 rounded-full flex-shrink-0" 
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+              {sectorData.map((slice, index) => (
+                <div
+                  key={slice.name}
+                  className="flex items-center gap-3"
                   style={{ 
-                    backgroundColor: activeIndex === index ? darkenColor(slice.color, 0.2) : slice.color,
-                    transition: 'background-color 0.2s ease-in-out'
-                  }} 
-                />
-                <span className="truncate">{slice.name}</span>
-              </div>
-            ))}
+                    cursor: 'pointer',
+                    opacity: activeIndex === null || activeIndex === index ? 1 : 0.3,
+                    transition: 'opacity 0.2s ease-in-out',
+                  }}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onMouseLeave={() => setActiveIndex(null)}
+                >
+                  <div 
+                    className="w-3 h-3 rounded-full flex-shrink-0" 
+                    style={{ 
+                      backgroundColor: activeIndex === index ? darkenColor(slice.color, 0.2) : slice.color,
+                      transition: 'background-color 0.2s ease-in-out'
+                    }} 
+                  />
+                  <span className="truncate">{slice.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
